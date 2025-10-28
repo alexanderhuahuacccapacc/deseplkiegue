@@ -4,49 +4,376 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Conductor GPS</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+      color: white;
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .container {
+      max-width: 800px;
+      width: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      margin-top: 20px;
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 2.2rem;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+    
+    .status-container {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    #status {
+      font-size: 1.2rem;
+      font-weight: bold;
+      padding: 10px;
+      border-radius: 5px;
+      transition: all 0.3s;
+    }
+    
+    .status-connected {
+      background-color: rgba(76, 175, 80, 0.3);
+      border: 1px solid #4CAF50;
+    }
+    
+    .status-disconnected {
+      background-color: rgba(244, 67, 54, 0.3);
+      border: 1px solid #F44336;
+    }
+    
+    .status-connecting {
+      background-color: rgba(255, 193, 7, 0.3);
+      border: 1px solid #FFC107;
+    }
+    
+    .info-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .info-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 15px;
+      text-align: center;
+    }
+    
+    .info-card h3 {
+      margin-bottom: 10px;
+      font-size: 1rem;
+      color: #ddd;
+    }
+    
+    .info-card p {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    
+    .coordinates {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .coordinates h3 {
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    
+    .coords-display {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .coord-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .coord-label {
+      color: #ddd;
+    }
+    
+    .coord-value {
+      font-weight: bold;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    button {
+      padding: 12px 25px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    }
+    
+    #startBtn {
+      background-color: #4CAF50;
+      color: white;
+    }
+    
+    #startBtn:hover {
+      background-color: #45a049;
+      transform: translateY(-2px);
+    }
+    
+    #stopBtn {
+      background-color: #f44336;
+      color: white;
+    }
+    
+    #stopBtn:hover {
+      background-color: #d32f2f;
+      transform: translateY(-2px);
+    }
+    
+    .log-container {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 20px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .log-container h3 {
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    
+    #log {
+      font-family: monospace;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    
+    .log-entry {
+      margin-bottom: 5px;
+      padding: 5px;
+      border-radius: 3px;
+    }
+    
+    .log-success {
+      background-color: rgba(76, 175, 80, 0.2);
+    }
+    
+    .log-warning {
+      background-color: rgba(255, 193, 7, 0.2);
+    }
+    
+    .log-error {
+      background-color: rgba(244, 67, 54, 0.2);
+    }
+    
+    .log-info {
+      background-color: rgba(33, 150, 243, 0.2);
+    }
+    
+    @media (max-width: 600px) {
+      .info-panel {
+        grid-template-columns: 1fr;
+      }
+      
+      .controls {
+        flex-direction: column;
+      }
+      
+      button {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
-  <h2 id="status">Conectando y obteniendo ubicación...</h2>
+  <h1>Sistema de Seguimiento GPS</h1>
+  
+  <div class="container">
+    <div class="status-container">
+      <h2 id="status">Conectando y obteniendo ubicación...</h2>
+    </div>
+    
+    <div class="info-panel">
+      <div class="info-card">
+        <h3>ID del Vehículo</h3>
+        <p id="busId">bus_22</p>
+      </div>
+      <div class="info-card">
+        <h3>Estado de Conexión</h3>
+        <p id="connectionStatus">Desconectado</p>
+      </div>
+    </div>
+    
+    <div class="coordinates">
+      <h3>Coordenadas Actuales</h3>
+      <div class="coords-display">
+        <div class="coord-item">
+          <span class="coord-label">Latitud:</span>
+          <span class="coord-value" id="latitude">-</span>
+        </div>
+        <div class="coord-item">
+          <span class="coord-label">Longitud:</span>
+          <span class="coord-value" id="longitude">-</span>
+        </div>
+        <div class="coord-item">
+          <span class="coord-label">Precisión:</span>
+          <span class="coord-value" id="accuracy">-</span>
+        </div>
+        <div class="coord-item">
+          <span class="coord-label">Velocidad:</span>
+          <span class="coord-value" id="speed">-</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="controls">
+      <button id="startBtn">Iniciar Seguimiento</button>
+      <button id="stopBtn">Detener Seguimiento</button>
+    </div>
+    
+    <div class="log-container">
+      <h3>Registro de Actividad</h3>
+      <div id="log"></div>
+    </div>
+  </div>
 
   <script>
-    // PON AQUÍ TU WEBSOCKET (sin doble https://)
+    // Configuración
     const WS_URL = "wss://deseplkiegue-ntxm.onrender.com/ws/location";
+    const BUS_ID = "bus_22";
 
+    // Variables globales
     let socket = null;
     let watchId = null;
-    const statusEl = document.getElementById("status");
-    const BUS_ID = "bus_22"; // cambia si quieres
+    let pendingLocations = [];
+    let isTracking = false;
 
+    // Elementos del DOM
+    const statusEl = document.getElementById("status");
+    const connectionStatusEl = document.getElementById("connectionStatus");
+    const latitudeEl = document.getElementById("latitude");
+    const longitudeEl = document.getElementById("longitude");
+    const accuracyEl = document.getElementById("accuracy");
+    const speedEl = document.getElementById("speed");
+    const busIdEl = document.getElementById("busId");
+    const logEl = document.getElementById("log");
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+
+    // Inicialización
+    busIdEl.textContent = BUS_ID;
+    updateStatus("Conectando...", "status-connecting");
+
+    // Funciones de utilidad
+    function updateStatus(message, className) {
+      statusEl.textContent = message;
+      statusEl.className = className || "";
+    }
+
+    function updateConnectionStatus(status) {
+      connectionStatusEl.textContent = status;
+      if (status === "Conectado") {
+        connectionStatusEl.style.color = "#4CAF50";
+      } else if (status === "Desconectado") {
+        connectionStatusEl.style.color = "#F44336";
+      } else {
+        connectionStatusEl.style.color = "#FFC107";
+      }
+    }
+
+    function addLog(message, type = "info") {
+      const timestamp = new Date().toLocaleTimeString();
+      const logEntry = document.createElement("div");
+      logEntry.className = `log-entry log-${type}`;
+      logEntry.textContent = `[${timestamp}] ${message}`;
+      logEl.appendChild(logEntry);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // WebSocket functions
     function connectSocket() {
       if (socket && socket.readyState === WebSocket.OPEN) return;
-      socket = new WebSocket(WS_URL);
+      
+      try {
+        socket = new WebSocket(WS_URL);
+        updateConnectionStatus("Conectando...");
 
-      socket.addEventListener("open", () => {
-        console.log("WS abierto");
-        statusEl.textContent = "WebSocket conectado. Enviando ubicación...";
-      });
+        socket.addEventListener("open", () => {
+          console.log("WS abierto");
+          updateStatus("WebSocket conectado. Enviando ubicación...", "status-connected");
+          updateConnectionStatus("Conectado");
+          addLog("WebSocket conectado correctamente", "success");
+          
+          // Enviar ubicaciones pendientes si las hay
+          sendPendingLocations();
+        });
 
-      socket.addEventListener("message", (evt) => {
-        console.log("Mensaje del servidor:", evt.data);
-      });
+        socket.addEventListener("message", (evt) => {
+          console.log("Mensaje del servidor:", evt.data);
+          addLog(`Servidor: ${evt.data}`, "info");
+        });
 
-      socket.addEventListener("close", (evt) => {
-        console.warn("WS cerrado. Reconectando en 3s...", evt.code, evt.reason);
-        statusEl.textContent = "WS desconectado. Reintentando...";
-        setTimeout(connectSocket, 3000);
-      });
+        socket.addEventListener("close", (evt) => {
+          console.warn("WS cerrado. Reconectando en 3s...", evt.code, evt.reason);
+          updateStatus("WS desconectado. Reintentando...", "status-disconnected");
+          updateConnectionStatus("Desconectado");
+          addLog(`WebSocket cerrado (código: ${evt.code}). Reconectando...`, "warning");
+          
+          setTimeout(connectSocket, 3000);
+        });
 
-      socket.addEventListener("error", (err) => {
-        console.error("Error en WS:", err);
-        socket.close();
-      });
+        socket.addEventListener("error", (err) => {
+          console.error("Error en WS:", err);
+          updateStatus("Error de conexión", "status-disconnected");
+          updateConnectionStatus("Error");
+          addLog("Error en la conexión WebSocket", "error");
+          socket.close();
+        });
+      } catch (error) {
+        console.error("Error al crear WebSocket:", error);
+        addLog("Error al crear WebSocket: " + error.message, "error");
+      }
     }
 
     function sendLocation(coords) {
-      if (!socket || socket.readyState !== WebSocket.OPEN) {
-        console.warn("WS no conectado aún — guardando o descartando ubicación");
-        return;
-      }
       const payload = {
         id: BUS_ID,
         lat: coords.latitude,
@@ -56,19 +383,86 @@
         speed: coords.speed ?? null,
         timestamp: Date.now()
       };
-      socket.send(JSON.stringify(payload));
-      console.log("Enviado:", payload);
+
+      // Actualizar la interfaz
+      latitudeEl.textContent = coords.latitude.toFixed(6);
+      longitudeEl.textContent = coords.longitude.toFixed(6);
+      accuracyEl.textContent = `${Math.round(coords.accuracy)} m`;
+      speedEl.textContent = coords.speed ? `${(coords.speed * 3.6).toFixed(1)} km/h` : "-";
+
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        console.warn("WS no conectado — guardando ubicación pendiente");
+        addLog("WebSocket no conectado, guardando ubicación pendiente", "warning");
+        
+        // Guardar máximo 10 ubicaciones para no consumir mucha memoria
+        if (pendingLocations.length < 10) {
+          pendingLocations.push(payload);
+        }
+        return;
+      }
+
+      try {
+        socket.send(JSON.stringify(payload));
+        console.log("Enviado:", payload);
+        addLog(`Ubicación enviada: ${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`, "success");
+      } catch (error) {
+        console.error("Error al enviar ubicación:", error);
+        addLog("Error al enviar ubicación: " + error.message, "error");
+        
+        // Guardar como pendiente si hay error
+        if (pendingLocations.length < 10) {
+          pendingLocations.push(payload);
+        }
+      }
     }
 
+    function sendPendingLocations() {
+      if (!socket || socket.readyState !== WebSocket.OPEN) return;
+      
+      while (pendingLocations.length > 0) {
+        const pending = pendingLocations.shift(); // toma el primero
+        try {
+          socket.send(JSON.stringify(pending));
+          console.log("Enviado pendiente:", pending);
+          addLog(`Ubicación pendiente enviada: ${pending.lat.toFixed(6)}, ${pending.lon.toFixed(6)}`, "success");
+        } catch (error) {
+          console.error("Error al enviar ubicación pendiente:", error);
+          addLog("Error al enviar ubicación pendiente", "error");
+          // Volver a poner en la cola si hay error
+          pendingLocations.unshift(pending);
+          break;
+        }
+      }
+    }
+
+    // Geolocation functions
     function errorHandler(err) {
       console.error("Error geolocalización:", err);
-      statusEl.textContent = "Error GPS: " + (err.message || err.code);
+      let errorMsg = "Error GPS: ";
+      
+      switch(err.code) {
+        case err.PERMISSION_DENIED:
+          errorMsg += "Permiso denegado por el usuario";
+          break;
+        case err.POSITION_UNAVAILABLE:
+          errorMsg += "Ubicación no disponible";
+          break;
+        case err.TIMEOUT:
+          errorMsg += "Tiempo de espera agotado";
+          break;
+        default:
+          errorMsg += err.message || "Error desconocido";
+      }
+      
+      updateStatus(errorMsg, "status-disconnected");
+      addLog(errorMsg, "error");
     }
 
     function startTracking() {
       if (!("geolocation" in navigator)) {
         alert("Geolocalización no disponible en este dispositivo.");
-        statusEl.textContent = "Geolocalización no disponible.";
+        updateStatus("Geolocalización no disponible.", "status-disconnected");
+        addLog("Geolocalización no disponible en este dispositivo", "error");
         return;
       }
 
@@ -82,9 +476,14 @@
       // watchPosition da actualizaciones continuas
       watchId = navigator.geolocation.watchPosition(position => {
         const { latitude, longitude, accuracy, heading, speed } = position.coords;
-        statusEl.textContent = `Ubicación: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (±${Math.round(accuracy)}m)`;
+        updateStatus(`Ubicación: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (±${Math.round(accuracy)}m)`, "status-connected");
         sendLocation(position.coords);
       }, errorHandler, options);
+
+      isTracking = true;
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      addLog("Seguimiento GPS iniciado", "success");
     }
 
     function stopTracking() {
@@ -92,16 +491,30 @@
         navigator.geolocation.clearWatch(watchId);
         watchId = null;
       }
-      if (socket) {
-        socket.close();
-        socket = null;
-      }
-      statusEl.textContent = "Tracking detenido.";
+      
+      isTracking = false;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      
+      updateStatus("Tracking detenido.", "status-disconnected");
+      addLog("Seguimiento GPS detenido", "info");
+      
+      // Limpiar display
+      latitudeEl.textContent = "-";
+      longitudeEl.textContent = "-";
+      accuracyEl.textContent = "-";
+      speedEl.textContent = "-";
     }
 
-    // Inicia websocket y tracking al cargar
-    connectSocket();
-    startTracking();
+    // Event listeners
+    startBtn.addEventListener("click", startTracking);
+    stopBtn.addEventListener("click", stopTracking);
+
+    // Iniciar automáticamente al cargar
+    window.addEventListener("load", () => {
+      connectSocket();
+      startTracking();
+    });
 
     // Para debugging: detener con doble toque largo en la pantalla
     document.addEventListener("dblclick", stopTracking);
