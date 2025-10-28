@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Conductor GPS</title>
+</head>
+<body>
+  <h2 id="status">Conectando y obteniendo ubicación...</h2>
+
+  <script>
+    // PON AQUÍ TU WEBSOCKET (sin doble https://)
+    const WS_URL = "wss://deseplkiegue-ntxm.onrender.com/ws/location";
+
+    let socket = null;
+    let watchId = null;
+    const statusEl = document.getElementById("status");
+    const BUS_ID = "bus_22"; // cambia si quieres
+
+    function connectSocket() {
+      if (socket && socket.readyState === WebSocket.OPEN) return;
+      socket = new WebSocket(WS_URL);
+
+      socket.addEventListener("open", () => {
+        console.log("WS abierto");
+        statusEl.textContent = "WebSocket conectado. Enviando ubicación...";
+      });
+
+      socket.addEventListener("message", (evt) => {
+        console.log("Mensaje del servidor:", evt.data);
+      });
+
+      socket.addEventListener("close", (evt) => {
+        console.warn("WS cerrado. Reconectando en 3s...", evt.code, evt.reason);
+        statusEl.textContent = "WS desconectado. Reintentando...";
+        setTimeout(connectSocket, 3000);
+      });
+
+      socket.addEventListener("error", (err) => {
+        console.error("Error en WS:", err);
+        socket.close();
+      });
+    }
+
+    function sendLocation(coords) {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        console.warn("WS no conectado aún — guardando o descartando ubicación");
+        return;
+      }
+      const payload = {
+        id: BUS_ID,
+        lat: coords.latitude,
+        lon: coords.longitude,
+        accuracy: coords.accuracy,
+        heading: coords.heading ?? null,
+        speed: coords.speed ?? null,
+        timestamp: Date.now()
+      };
+      socket.send(JSON.stringify(payload));
+      console.log("Enviado:", payload);
+    }
+
+    function errorHandler(err) {
+      console.error("Error geolocalización:", err);
+      statusEl.textContent = "Error GPS: " + (err.message || err.code);
+    }
+
+    function startTracking() {
+      if (!("geolocation" in navigator)) {
+        alert("Geolocalización no disponible en este dispositivo.");
+        statusEl.textContent = "Geolocalización no disponible.";
+        return;
+      }
+
+      // Opciones de precisión (ajusta según consumo de batería)
+      const options = {
+        enableHighAccuracy: true,
+        maximumAge: 1000,    // no usar ubicaciones muy antiguas
+        timeout: 10000
+      };
+
+      // watchPosition da actualizaciones continuas
+      watchId = navigator.geolocation.watchPosition(position => {
+        const { latitude, longitude, accuracy, heading, speed } = position.coords;
+        statusEl.textContent = `Ubicación: ${latitude.toFixed(6)}, ${longitude.toFixed(6)} (±${Math.round(accuracy)}m)`;
+        sendLocation(position.coords);
+      }, errorHandler, options);
+    }
+
+    function stopTracking() {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+      if (socket) {
+        socket.close();
+        socket = null;
+      }
+      statusEl.textContent = "Tracking detenido.";
+    }
+
+    // Inicia websocket y tracking al cargar
+    connectSocket();
+    startTracking();
+
+    // Para debugging: detener con doble toque largo en la pantalla
+    document.addEventListener("dblclick", stopTracking);
+  </script>
+</body>
+</html>
